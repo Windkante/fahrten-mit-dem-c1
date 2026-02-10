@@ -1,22 +1,230 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Test</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Fahrten mit dem C1</title>
+
+<style>
+:root {
+  --bg: #ffffff;
+  --text: #000000;
+  --card: #f2f2f2;
+  --accent: #0a84ff;
+  --muted: #777;
+}
+
+html.dark {
+  --bg: #121212;
+  --text: #ffffff;
+  --card: #1e1e1e;
+  --muted: #aaa;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+header {
+  padding: 16px;
+  background: var(--card);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+main {
+  padding: 16px;
+}
+
+.card {
+  background: var(--card);
+  padding: 16px;
+  border-radius: 14px;
+  margin-bottom: 16px;
+}
+
+button {
+  width: 100%;
+  padding: 14px;
+  font-size: 16px;
+  border-radius: 12px;
+  border: none;
+  background: var(--accent);
+  color: white;
+  margin-top: 8px;
+}
+
+button.secondary {
+  background: #666;
+}
+
+select {
+  width: 100%;
+  padding: 10px;
+  font-size: 16px;
+}
+
+.toggle {
+  display: flex;
+  gap: 8px;
+}
+
+canvas {
+  width: 100%;
+  height: 220px;
+}
+</style>
 </head>
+
 <body>
 
-<h1>Testseite</h1>
+<header>
+  <strong>🚗 Fahrten mit dem C1</strong>
+  <button id="darkBtn" class="secondary">🌙</button>
+</header>
 
-<button id="testBtn">KLICK MICH</button>
+<main>
+
+<div class="card">
+  <label>Fahrer</label>
+  <select id="driver">
+    <option>Felipe</option>
+    <option>Claudia</option>
+    <option>Christian</option>
+  </select>
+</div>
+
+<div class="card">
+  <button id="startBtn">▶ Fahrt starten</button>
+  <button id="endBtn" class="secondary">■ Fahrt beenden</button>
+</div>
+
+<div class="card" id="status">
+  Keine aktive Fahrt
+</div>
+
+<div class="card toggle">
+  <button class="secondary" onclick="setView('month')">Monat</button>
+  <button class="secondary" onclick="setView('year')">Jahr</button>
+</div>
+
+<div class="card">
+  <h3>Auswertung</h3>
+  <div id="stats"></div>
+</div>
+
+<div class="card">
+  <canvas id="chart"></canvas>
+</div>
+
+</main>
 
 <script>
-  console.log("Script geladen");
+// ===== Dark Mode =====
+darkBtn.onclick = () => {
+  document.documentElement.classList.toggle("dark");
+};
 
-  document.getElementById("testBtn").addEventListener("click", () => {
-    alert("BUTTON FUNKTIONIERT");
+// ===== State =====
+let trips = JSON.parse(localStorage.getItem("c1Trips")) || [];
+let currentTrip = null;
+let view = "month";
+
+// ===== Elemente =====
+const startBtn = startBtnEl = document.getElementById("startBtn");
+const endBtn = document.getElementById("endBtn");
+const statusBox = document.getElementById("status");
+const statsBox = document.getElementById("stats");
+const driverSelect = document.getElementById("driver");
+const canvas = document.getElementById("chart");
+const ctx = canvas.getContext("2d");
+
+// ===== Start =====
+startBtn.onclick = () => {
+  if (currentTrip) return;
+  currentTrip = {
+    driver: driverSelect.value,
+    start: Date.now()
+  };
+  statusBox.innerText = "Fahrt läuft…";
+};
+
+// ===== Ende =====
+endBtn.onclick = () => {
+  if (!currentTrip) return;
+
+  currentTrip.end = Date.now();
+  currentTrip.duration =
+    Math.round((currentTrip.end - currentTrip.start) / 60000);
+
+  trips.push(currentTrip);
+  localStorage.setItem("c1Trips", JSON.stringify(trips));
+  currentTrip = null;
+  statusBox.innerText = "Fahrt beendet";
+  render();
+};
+
+// ===== View =====
+function setView(v) {
+  view = v;
+  render();
+}
+
+// ===== Auswertung =====
+function render() {
+  const now = new Date();
+  const filtered = trips.filter(t => {
+    const d = new Date(t.start);
+    return view === "year"
+      ? d.getFullYear() === now.getFullYear()
+      : d.getMonth() === now.getMonth() &&
+        d.getFullYear() === now.getFullYear();
   });
+
+  const data = {};
+  filtered.forEach(t => {
+    if (!data[t.driver]) data[t.driver] = { count: 0, min: 0 };
+    data[t.driver].count++;
+    data[t.driver].min += t.duration;
+  });
+
+  let html = "";
+  Object.keys(data).forEach(d => {
+    html += `<strong>${d}</strong>: ${data[d].count} Fahrten · ${data[d].min} Min<br>`;
+  });
+  statsBox.innerHTML = html || "Keine Fahrten";
+
+  drawChart(data);
+}
+
+// ===== Diagramm =====
+function drawChart(data) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const drivers = Object.keys(data);
+  if (!drivers.length) return;
+
+  const max = Math.max(...drivers.map(d => data[d].min));
+  const barWidth = canvas.width / drivers.length;
+
+  drivers.forEach((d, i) => {
+    const h = (data[d].min / max) * (canvas.height - 20);
+    ctx.fillStyle = "#0a84ff";
+    ctx.fillRect(
+      i * barWidth + 10,
+      canvas.height - h,
+      barWidth - 20,
+      h
+    );
+    ctx.fillStyle = "#888";
+    ctx.fillText(d, i * barWidth + 15, canvas.height - 5);
+  });
+}
+
+render();
 </script>
 
 </body>
