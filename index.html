@@ -4,229 +4,195 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Fahrten mit dem C1</title>
-<link rel="manifest" href="manifest.json">
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta name="color-scheme" content="light dark">
 
 <style>
 :root {
-  --bg:#f5f6fa;
-  --card:#ffffff;
-  --text:#1c1c1e;
-  --muted:#6e6e73;
-  --primary:#0a84ff;
-  --felipe:#34c759;
-  --claudia:#ff9f0a;
-  --christian:#af52de;
+  --bg: #ffffff;
+  --text: #000000;
+  --card: #f2f2f2;
+  --accent: #0a84ff;
 }
 
-.dark {
-  --bg:#1c1c1e;
-  --card:#2c2c2e;
-  --text:#f5f5f7;
-  --muted:#a1a1a6;
+html.dark {
+  --bg: #121212;
+  --text: #ffffff;
+  --card: #1e1e1e;
 }
-
-* { box-sizing:border-box; }
 
 body {
-  margin:0;
-  background:var(--bg);
-  font-family:Inter, system-ui, sans-serif;
-  color:var(--text);
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
 }
 
-/* HEADER */
-.header {
-  position:relative;
-  height:260px;
-  overflow:hidden;
+header {
+  padding: 16px;
+  background: var(--card);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.header img {
-  position:absolute;
-  inset:0;
-  width:100%;
-  height:100%;
-  object-fit:cover;
-}
-
-.header::after {
-  content:"";
-  position:absolute;
-  inset:0;
-  background:linear-gradient(to bottom, rgba(0,0,0,.2), rgba(0,0,0,.6));
-}
-
-.header h1 {
-  position:relative;
-  z-index:1;
-  color:white;
-  margin:0;
-  padding:20px;
-  font-size:26px;
-}
-
-/* LAYOUT */
-.container {
-  max-width:480px;
-  margin:auto;
-  padding:16px;
+main {
+  padding: 16px;
 }
 
 .card {
-  background:var(--card);
-  border-radius:18px;
-  padding:16px;
-  margin-bottom:16px;
-  box-shadow:0 10px 30px rgba(0,0,0,.08);
-}
-
-select, button {
-  width:100%;
-  padding:14px;
-  margin-top:8px;
-  border-radius:14px;
-  border:1px solid #ccc;
-  font-size:16px;
+  background: var(--card);
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 16px;
 }
 
 button {
-  border:none;
-  font-weight:600;
-  cursor:pointer;
+  padding: 12px 16px;
+  font-size: 16px;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent);
+  color: white;
 }
 
-.primary { background:var(--primary); color:white; }
-.secondary { background:#e5e5ea; }
-
-.toggle {
-  display:flex;
-  gap:8px;
+button.secondary {
+  background: #555;
 }
 
-.legend {
-  font-size:13px;
-  color:var(--muted);
-  margin-top:6px;
+select {
+  padding: 8px;
+  font-size: 16px;
 }
-
-.bar {
-  height:14px;
-  border-radius:7px;
-  margin-bottom:10px;
-}
-
-.trip {
-  font-size:14px;
-  margin-bottom:6px;
-}
-
-footer {
-  text-align:center;
-  font-size:12px;
-  color:var(--muted);
-}
-
-/* 🌙 Dark Mode – final */
-html.dark body {
-  background: #121212;
-  color: #ffffff;
-}
-
-html.dark .card {
-  background: #1e1e1e;
-}
-
-html.dark footer {
-  color: #aaaaaa;
-}
-
-html.dark button {
-  background: #2a2a2a;
-  color: #ffffff;
-}
-
 </style>
 </head>
 
 <body>
 
-<div class="header">
-  <img src="c1-header.jpg" alt="Citroën C1">
-  <h1>Fahrten mit dem C1</h1>
-</div>
+<header>
+  <strong>🚗 Fahrten mit dem C1</strong>
+  <button class="secondary" onclick="toggleDark()">🌙</button>
+</header>
 
-<div class="container">
+<main>
 
 <div class="card">
+  <label>Fahrer:</label><br>
   <select id="driver">
     <option>Felipe</option>
     <option>Claudia</option>
     <option>Christian</option>
   </select>
-
-  <button id="startBtn" class="primary">▶ Fahrt starten</button>
-  <button id="stopBtn" class="secondary" disabled>⏹ Fahrt beenden</button>
-
-  <div id="status" class="legend">Keine aktive Fahrt</div>
 </div>
 
 <div class="card">
-  <div class="toggle">
-    <button class="secondary" onclick="setView('month')">Monat</button>
-    <button class="secondary" onclick="setView('year')">Jahr</button>
-    <button class="secondary" onclick="toggleDark()">🌙</button>
-  </div>
-  <h3>📊 Auswertung</h3>
+  <button onclick="startTrip()">▶ Fahrt starten</button>
+  <button onclick="endTrip()">⏹ Fahrt beenden</button>
+</div>
+
+<div class="card" id="status">
+  Keine aktive Fahrt
+</div>
+
+<div class="card">
+  <h3>Auswertung (gesamt)</h3>
   <div id="stats"></div>
 </div>
 
-<div class="card">
-  <h3>📅 Monatsdiagramme pro Fahrer</h3>
-  <div id="monthlyCharts"></div>
-</div>
-
-<div class="card">
-  <h3>🗂 Fahrten</h3>
-  <div id="tripList"></div>
-</div>
-
-<footer>
-  Lokal gespeichert · Privat · Final 2026
-</footer>
-
-</div>
+</main>
 
 <script>
-let trips = JSON.parse(localStorage.getItem("C1Trips")) || [];
-
-// 🌙 Dark Mode umschalten
+/* ===== Dark Mode ===== */
 function toggleDark() {
-  const root = document.documentElement;
-  const isDark = root.classList.toggle("dark");
-  localStorage.setItem("theme", isDark ? "dark" : "light");
+  document.documentElement.classList.toggle("dark");
+  localStorage.setItem("theme",
+    document.documentElement.classList.contains("dark") ? "dark" : "light"
+  );
+}
+if (localStorage.getItem("theme") === "dark") {
+  document.documentElement.classList.add("dark");
 }
 
-// 🌙 Beim Start gespeicherten Modus laden
-(function () {
-  const savedTheme = localStorage.getItem("theme");
-  if (savedTheme === "dark") {
-    document.documentElement.classList.add("dark");
+/* ===== Fahrten-Daten ===== */
+let trips = JSON.parse(localStorage.getItem("c1Trips")) || [];
+let currentTrip = null;
+let watchId = null;
+
+/* ===== Distanzberechnung ===== */
+function distance(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2-lat1) * Math.PI/180;
+  const dLon = (lon2-lon1) * Math.PI/180;
+  const a =
+    Math.sin(dLat/2)**2 +
+    Math.cos(lat1*Math.PI/180) *
+    Math.cos(lat2*Math.PI/180) *
+    Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+/* ===== Fahrt starten ===== */
+function startTrip() {
+  if (currentTrip) return;
+
+  currentTrip = {
+    driver: document.getElementById("driver").value,
+    start: Date.now(),
+    distance: 0,
+    lastPos: null
+  };
+
+  watchId = navigator.geolocation.watchPosition(pos => {
+    const { latitude, longitude } = pos.coords;
+    if (currentTrip.lastPos) {
+      currentTrip.distance += distance(
+        currentTrip.lastPos.lat,
+        currentTrip.lastPos.lon,
+        latitude,
+        longitude
+      );
+    }
+    currentTrip.lastPos = { lat: latitude, lon: longitude };
+  });
+
+  document.getElementById("status").innerText = "Fahrt läuft…";
+}
+
+/* ===== Fahrt beenden ===== */
+function endTrip() {
+  if (!currentTrip) return;
+
+  navigator.geolocation.clearWatch(watchId);
+
+  currentTrip.end = Date.now();
+  trips.push(currentTrip);
+  localStorage.setItem("c1Trips", JSON.stringify(trips));
+
+  currentTrip = null;
+  document.getElementById("status").innerText = "Fahrt beendet";
+  updateStats();
+}
+
+/* ===== Auswertung ===== */
+function updateStats() {
+  let text = "";
+  const byDriver = {};
+
+  trips.forEach(t => {
+    byDriver[t.driver] ??= { km: 0, count: 0 };
+    byDriver[t.driver].km += t.distance;
+    byDriver[t.driver].count++;
+  });
+
+  for (const d in byDriver) {
+    text += `${d}: ${byDriver[d].count} Fahrten, ${byDriver[d].km.toFixed(1)} km<br>`;
   }
-})();
-</script>
 
-<script>
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js");
+  document.getElementById("stats").innerHTML = text || "Noch keine Fahrten";
 }
+
+updateStats();
 </script>
 
 </body>
 </html>
-
-
-
-
-
