@@ -134,7 +134,25 @@ function dist(a,b){
 startBtn.onclick=()=>{
   if(!navigator.geolocation)return alert("GPS nicht verfügbar");
   currentTrip={driver:driver.value,start:Date.now(),pts:[],dist:0};
-  watchId=navigator.geolocation.watchPosition(p=>{
+  watchId = navigator.geolocation.watchPosition(
+  p => {
+    const pos = { lat: p.coords.latitude, lon: p.coords.longitude };
+    if (currentTrip.pts.length)
+      currentTrip.dist += dist(currentTrip.pts.at(-1), pos);
+    currentTrip.pts.push(pos);
+    statusBox.innerText =
+      `Fahrt läuft… ${(currentTrip.dist / 1000).toFixed(2)} km`;
+  },
+  err => {
+    alert("GPS-Fehler: " + err.message);
+  },
+  {
+    enableHighAccuracy: true,
+    maximumAge: 0,
+    timeout: 10000
+  }
+);
+
     const pos={lat:p.coords.latitude,lon:p.coords.longitude};
     if(currentTrip.pts.length)
       currentTrip.dist+=dist(currentTrip.pts.at(-1),pos);
@@ -227,3 +245,4 @@ render();
 </script>
 </body>
 </html>
+
