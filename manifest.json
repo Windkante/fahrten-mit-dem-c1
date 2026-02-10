@@ -1,0 +1,15 @@
+{
+  "name": "Fahrten mit dem C1",
+  "short_name": "C1 Fahrten",
+  "start_url": "/fahrten-mit-dem-c1/",
+  "display": "standalone",
+  "background_color": "#0a84ff",
+  "theme_color": "#0a84ff",
+  "icons": [
+    {
+      "src": "c1-header.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}
