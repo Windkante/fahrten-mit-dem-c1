@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Fahrten mit dem C1</title>
 
-<meta name="color-scheme" content="light dark">
+<meta name="color-scheme" content="light dark" />
 
 <style>
 :root {
@@ -23,7 +23,7 @@ html.dark {
 
 body {
   margin: 0;
-  font-family: system-ui, sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   background: var(--bg);
   color: var(--text);
 }
@@ -48,20 +48,23 @@ main {
 }
 
 button {
-  padding: 12px 16px;
+  width: 100%;
+  padding: 14px;
   font-size: 16px;
-  border-radius: 8px;
+  border-radius: 10px;
   border: none;
   background: var(--accent);
   color: white;
+  margin-top: 8px;
 }
 
 button.secondary {
-  background: #555;
+  background: #666;
 }
 
 select {
-  padding: 8px;
+  width: 100%;
+  padding: 10px;
   font-size: 16px;
 }
 </style>
@@ -71,13 +74,13 @@ select {
 
 <header>
   <strong>🚗 Fahrten mit dem C1</strong>
-  <button class="secondary" onclick="toggleDark()">🌙</button>
+  <button class="secondary" id="darkBtn">🌙</button>
 </header>
 
 <main>
 
 <div class="card">
-  <label>Fahrer:</label><br>
+  <label>Fahrer</label>
   <select id="driver">
     <option>Felipe</option>
     <option>Claudia</option>
@@ -86,8 +89,8 @@ select {
 </div>
 
 <div class="card">
-  <button onclick="startTrip()">▶ Fahrt starten</button>
-  <button onclick="endTrip()">⏹ Fahrt beenden</button>
+  <button id="startBtn">▶ Fahrt starten</button>
+  <button id="endBtn" class="secondary">■ Fahrt beenden</button>
 </div>
 
 <div class="card" id="status">
@@ -95,160 +98,90 @@ select {
 </div>
 
 <div class="card">
-  <h3>Auswertung (gesamt)</h3>
-  <div id="stats"></div>
+  <h3>Auswertung</h3>
+  <div id="stats">Noch keine Fahrten</div>
 </div>
 
 </main>
 
 <script>
-/* ===== Dark Mode ===== */
-function toggleDark() {
-  document.documentElement.classList.toggle("dark");
-  localStorage.setItem("theme",
-    document.documentElement.classList.contains("dark") ? "dark" : "light"
-  );
-}
-if (localStorage.getItem("theme") === "dark") {
-  document.documentElement.classList.add("dark");
-}
-
-/* ===== Fahrten-Daten ===== */
-let trips = JSON.parse(localStorage.getItem("c1Trips")) || [];
-let currentTrip = null;
-let watchId = null;
-
-/* ===== Distanzberechnung ===== */
-function distance(lat1, lon1, lat2, lon2) {
-  const R = 6371;
-  const dLat = (lat2-lat1) * Math.PI/180;
-  const dLon = (lon2-lon1) * Math.PI/180;
-  const a =
-    Math.sin(dLat/2)**2 +
-    Math.cos(lat1*Math.PI/180) *
-    Math.cos(lat2*Math.PI/180) *
-    Math.sin(dLon/2)**2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-}
-
-/* ===== Fahrt starten ===== */
-function startTrip() {
-  alert("startTrip erreicht");
-
-  if (currentTrip) return;
-
-  currentTrip = {
-    driver: document.getElementById("driver").value,
-    start: Date.now(),
-    distance: 0,
-    lastPos: null
-  };
-
-  watchId = navigator.geolocation.watchPosition(pos => {
-    const { latitude, longitude } = pos.coords;
-    if (currentTrip.lastPos) {
-      currentTrip.distance += distance(
-        currentTrip.lastPos.lat,
-        currentTrip.lastPos.lon,
-        latitude,
-        longitude
-      );
-    }
-    currentTrip.lastPos = { lat: latitude, lon: longitude };
-  });
-
-  document.getElementById("status").innerText = "Fahrt läuft…";
-}
-
-/* ===== Fahrt beenden ===== */
-function endTrip() {
-  if (!currentTrip) return;
-
-  navigator.geolocation.clearWatch(watchId);
-
-  currentTrip.end = Date.now();
-  trips.push(currentTrip);
-  localStorage.setItem("c1Trips", JSON.stringify(trips));
-
-  currentTrip = null;
-  document.getElementById("status").innerText = "Fahrt beendet";
-  updateStats();
-}
-
-/* ===== Auswertung ===== */
-function updateStats() {
-  let text = "";
-  const byDriver = {};
-
-  trips.forEach(t => {
-    byDriver[t.driver] ??= { km: 0, count: 0 };
-    byDriver[t.driver].km += t.distance;
-    byDriver[t.driver].count++;
-  });
-
-  for (const d in byDriver) {
-    text += `${d}: ${byDriver[d].count} Fahrten, ${byDriver[d].km.toFixed(1)} km<br>`;
-  }
-
-  document.getElementById("stats").innerHTML = text || "Noch keine Fahrten";
-}
-
-updateStats();
-</script>
-<script>
-/* =====================
-   GLOBALER APP-STATUS
-===================== */
-let trips = JSON.parse(localStorage.getItem("c1Trips")) || [];
-let currentTrip = null;
-
-/* =====================
-   DARK MODE (bleibt)
-===================== */
-function toggleDark() {
+// ===== DARK MODE =====
+const darkBtn = document.getElementById("darkBtn");
+darkBtn.addEventListener("click", () => {
   document.documentElement.classList.toggle("dark");
   localStorage.setItem(
     "theme",
     document.documentElement.classList.contains("dark") ? "dark" : "light"
   );
-}
+});
 if (localStorage.getItem("theme") === "dark") {
   document.documentElement.classList.add("dark");
 }
 
-/* =====================
-   FAHRT STARTEN – TEST
-===================== */
-function startTrip() {
-  alert("startTrip erreicht");
+// ===== STATE =====
+let trips = JSON.parse(localStorage.getItem("c1Trips")) || [];
+let currentTrip = null;
 
+// ===== ELEMENTE =====
+const startBtn = document.getElementById("startBtn");
+const endBtn = document.getElementById("endBtn");
+const statusBox = document.getElementById("status");
+const statsBox = document.getElementById("stats");
+const driverSelect = document.getElementById("driver");
+
+// ===== START =====
+startBtn.addEventListener("click", () => {
   if (currentTrip) return;
 
   currentTrip = {
+    driver: driverSelect.value,
     start: Date.now()
   };
 
-  const status = document.getElementById("status");
-  if (status) status.innerText = "Fahrt läuft…";
-}
+  statusBox.innerText = "Fahrt läuft…";
+});
 
-/* =====================
-   FAHRT BEENDEN – TEST
-===================== */
-function endTrip() {
+// ===== ENDE =====
+endBtn.addEventListener("click", () => {
   if (!currentTrip) return;
 
   currentTrip.end = Date.now();
+  currentTrip.durationMin =
+    Math.round((currentTrip.end - currentTrip.start) / 60000);
+
   trips.push(currentTrip);
   localStorage.setItem("c1Trips", JSON.stringify(trips));
-  currentTrip = null;
 
-  const status = document.getElementById("status");
-  if (status) status.innerText = "Fahrt beendet";
+  currentTrip = null;
+  statusBox.innerText = "Fahrt beendet";
+  updateStats();
+});
+
+// ===== AUSWERTUNG =====
+function updateStats() {
+  if (trips.length === 0) {
+    statsBox.innerText = "Noch keine Fahrten";
+    return;
+  }
+
+  const byDriver = {};
+  trips.forEach(t => {
+    if (!byDriver[t.driver]) {
+      byDriver[t.driver] = { count: 0, minutes: 0 };
+    }
+    byDriver[t.driver].count++;
+    byDriver[t.driver].minutes += t.durationMin;
+  });
+
+  let html = "";
+  for (const d in byDriver) {
+    html += `<strong>${d}</strong>: ${byDriver[d].count} Fahrten, ${byDriver[d].minutes} Min<br>`;
+  }
+  statsBox.innerHTML = html;
 }
+
+updateStats();
 </script>
 
 </body>
 </html>
-
-
