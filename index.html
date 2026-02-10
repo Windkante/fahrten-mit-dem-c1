@@ -195,7 +195,60 @@ function updateStats() {
 
 updateStats();
 </script>
+<script>
+/* =====================
+   GLOBALER APP-STATUS
+===================== */
+let trips = JSON.parse(localStorage.getItem("c1Trips")) || [];
+let currentTrip = null;
+
+/* =====================
+   DARK MODE (bleibt)
+===================== */
+function toggleDark() {
+  document.documentElement.classList.toggle("dark");
+  localStorage.setItem(
+    "theme",
+    document.documentElement.classList.contains("dark") ? "dark" : "light"
+  );
+}
+if (localStorage.getItem("theme") === "dark") {
+  document.documentElement.classList.add("dark");
+}
+
+/* =====================
+   FAHRT STARTEN – TEST
+===================== */
+function startTrip() {
+  alert("startTrip erreicht");
+
+  if (currentTrip) return;
+
+  currentTrip = {
+    start: Date.now()
+  };
+
+  const status = document.getElementById("status");
+  if (status) status.innerText = "Fahrt läuft…";
+}
+
+/* =====================
+   FAHRT BEENDEN – TEST
+===================== */
+function endTrip() {
+  if (!currentTrip) return;
+
+  currentTrip.end = Date.now();
+  trips.push(currentTrip);
+  localStorage.setItem("c1Trips", JSON.stringify(trips));
+  currentTrip = null;
+
+  const status = document.getElementById("status");
+  if (status) status.innerText = "Fahrt beendet";
+}
+</script>
 
 </body>
 </html>
+
 
