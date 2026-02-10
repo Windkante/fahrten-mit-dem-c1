@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fahrten mit dem C1</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg:#f5f6fa;
+  --card:#ffffff;
+  --text:#1c1c1e;
+  --muted:#6e6e73;
+  --primary:#0a84ff;
+  --felipe:#34c759;
+  --claudia:#ff9f0a;
+  --christian:#af52de;
+}
+
+.dark {
+  --bg:#1c1c1e;
+  --card:#2c2c2e;
+  --text:#f5f5f7;
+  --muted:#a1a1a6;
+}
+
+* { box-sizing:border-box; }
+
+body {
+  margin:0;
+  background:var(--bg);
+  font-family:Inter, system-ui, sans-serif;
+  color:var(--text);
+}
+
+/* HEADER */
+.header {
+  position:relative;
+  height:260px;
+  overflow:hidden;
+}
+
+.header img {
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+.header::after {
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(to bottom, rgba(0,0,0,.2), rgba(0,0,0,.6));
+}
+
+.header h1 {
+  position:relative;
+  z-index:1;
+  color:white;
+  margin:0;
+  padding:20px;
+  font-size:26px;
+}
+
+/* LAYOUT */
+.container {
+  max-width:480px;
+  margin:auto;
+  padding:16px;
+}
+
+.card {
+  background:var(--card);
+  border-radius:18px;
+  padding:16px;
+  margin-bottom:16px;
+  box-shadow:0 10px 30px rgba(0,0,0,.08);
+}
+
+select, button {
+  width:100%;
+  padding:14px;
+  margin-top:8px;
+  border-radius:14px;
+  border:1px solid #ccc;
+  font-size:16px;
+}
+
+button {
+  border:none;
+  font-weight:600;
+  cursor:pointer;
+}
+
+.primary { background:var(--primary); color:white; }
+.secondary { background:#e5e5ea; }
+
+.toggle {
+  display:flex;
+  gap:8px;
+}
+
+.legend {
+  font-size:13px;
+  color:var(--muted);
+  margin-top:6px;
+}
+
+.bar {
+  height:14px;
+  border-radius:7px;
+  margin-bottom:10px;
+}
+
+.trip {
+  font-size:14px;
+  margin-bottom:6px;
+}
+
+footer {
+  text-align:center;
+  font-size:12px;
+  color:var(--muted);
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+  <img src="c1-header.jpg" alt="Citroën C1">
+  <h1>Fahrten mit dem C1</h1>
+</div>
+
+<div class="container">
+
+<div class="card">
+  <select id="driver">
+    <option>Felipe</option>
+    <option>Claudia</option>
+    <option>Christian</option>
+  </select>
+
+  <button id="startBtn" class="primary">▶ Fahrt starten</button>
+  <button id="stopBtn" class="secondary" disabled>⏹ Fahrt beenden</button>
+
+  <div id="status" class="legend">Keine aktive Fahrt</div>
+</div>
+
+<div class="card">
+  <div class="toggle">
+    <button class="secondary" onclick="setView('month')">Monat</button>
+    <button class="secondary" onclick="setView('year')">Jahr</button>
+    <button class="secondary" onclick="toggleDark()">🌙</button>
+  </div>
+  <h3>📊 Auswertung</h3>
+  <div id="stats"></div>
+</div>
+
+<div class="card">
+  <h3>📅 Monatsdiagramme pro Fahrer</h3>
+  <div id="monthlyCharts"></div>
+</div>
+
+<div class="card">
+  <h3>🗂 Fahrten</h3>
+  <div id="tripList"></div>
+</div>
+
+<footer>
+  Lokal gespeichert · Privat · Final 2026
+</footer>
+
+</div>
+
+<script>
+let trips = JSON.parse(localStorage.getItem("c1Trips")) || [];
