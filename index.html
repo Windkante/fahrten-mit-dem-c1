@@ -179,3 +179,14 @@ footer {
 
 <script>
 let trips = JSON.parse(localStorage.getItem("c1Trips")) || [];
+
+</script>
+
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js");
+}
+</script>
+
+</body>
+</html>
