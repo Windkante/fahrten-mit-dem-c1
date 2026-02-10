@@ -6,67 +6,27 @@
 <title>Fahrtenbuch C1</title>
 
 <style>
-:root {
-  --bg: #f6f7f9;
-  --card: #ffffff;
-  --text: #111;
-  --muted: #666;
-  --accent: #0a84ff;
-  --radius: 18px;
+:root{
+  --bg:#f6f7f9;--card:#fff;--text:#111;--muted:#666;
+  --accent:#0a84ff;--radius:18px
 }
-html.dark {
-  --bg: #121212;
-  --card: #1e1e1e;
-  --text: #fff;
-  --muted: #aaa;
-}
-body {
-  margin: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-}
-.hero {
-  position: relative;
-  height: 220px;
-  background: url("c1-header.jpg") center/cover no-repeat;
-}
-.hero h1 {
-  position: absolute;
-  left: 20px;
-  bottom: 20px;
-  margin: 0;
-  color: white;
-  font-size: 28px;
-  text-shadow: 0 4px 20px rgba(0,0,0,.6);
-}
-main {
-  padding: 16px;
-  max-width: 520px;
-  margin: auto;
-}
-.card {
-  background: var(--card);
-  border-radius: var(--radius);
-  padding: 16px;
-  margin-bottom: 16px;
-  box-shadow: 0 12px 30px rgba(0,0,0,.08);
-}
-button {
-  width: 100%;
-  padding: 14px;
-  border-radius: 14px;
-  border: none;
-  font-size: 16px;
-  background: var(--accent);
-  color: white;
-  margin-top: 8px;
-}
-button.secondary { background: #777; }
-select { width: 100%; padding: 10px; font-size: 16px; }
-.toggle { display: flex; gap: 10px; }
-.toggle button { flex: 1; }
-canvas { width: 100%; height: 220px; }
+html.dark{--bg:#121212;--card:#1e1e1e;--text:#fff;--muted:#aaa}
+body{margin:0;font-family:system-ui;background:var(--bg);color:var(--text)}
+.hero{height:220px;background:url("c1-header.jpg") center/cover}
+.hero h1{margin:0;padding:20px;color:#fff;font-size:28px;
+text-shadow:0 4px 20px rgba(0,0,0,.6)}
+main{max-width:520px;margin:auto;padding:16px}
+.card{background:var(--card);border-radius:var(--radius);
+padding:16px;margin-bottom:16px;
+box-shadow:0 12px 30px rgba(0,0,0,.08)}
+button{width:100%;padding:14px;border-radius:14px;
+border:none;font-size:16px;background:var(--accent);
+color:#fff;margin-top:8px}
+button.secondary{background:#777}
+select{width:100%;padding:10px;font-size:16px}
+canvas{width:100%;height:240px}
+.small{font-size:14px;color:var(--muted)}
+.trip{border-bottom:1px solid #ddd;padding:8px 0}
 </style>
 </head>
 
@@ -74,138 +34,155 @@ canvas { width: 100%; height: 220px; }
 <div class="hero"><h1>Fahrtenbuch C1</h1></div>
 
 <main>
+
 <div class="card">
-  <label>Fahrer</label>
-  <select id="driver">
-    <option>Felipe</option>
-    <option>Claudia</option>
-    <option>Christian</option>
-  </select>
+<label>Fahrer</label>
+<select id="driver">
+<option>Felipe</option>
+<option>Claudia</option>
+<option>Christian</option>
+</select>
 </div>
 
 <div class="card">
-  <button id="startBtn">▶ Fahrt starten</button>
-  <button id="endBtn" class="secondary">■ Fahrt beenden</button>
+<button id="startBtn">▶ Fahrt starten</button>
+<button id="endBtn" class="secondary">■ Fahrt beenden</button>
 </div>
 
 <div class="card" id="status">Keine aktive Fahrt</div>
 
-<div class="card toggle">
-  <button class="secondary" onclick="setView('month')">Monat</button>
-  <button class="secondary" onclick="setView('year')">Jahr</button>
+<div class="card">
+<label>Monat</label>
+<select id="monthSelect"></select>
 </div>
 
 <div class="card">
-  <h3>Auswertung</h3>
-  <div id="stats"></div>
+<h3>Auswertung</h3>
+<div id="stats"></div>
 </div>
 
-<div class="card"><canvas id="chart"></canvas></div>
-<div class="card"><button class="secondary" id="darkBtn">🌙 Dark Mode</button></div>
+<div class="card">
+<canvas id="chart"></canvas>
+</div>
+
+<div class="card">
+<h3>Fahrten</h3>
+<div id="tripList"></div>
+</div>
+
+<div class="card">
+<button class="secondary" id="darkBtn">🌙 Dark Mode</button>
+</div>
+
 </main>
 
 <script>
-// ========= STATE =========
-let trips = JSON.parse(localStorage.getItem("c1Trips")) || [];
-let currentTrip = null;
-let watchId = null;
-let view = "month";
+/* ===== STATE ===== */
+let trips=JSON.parse(localStorage.getItem("c1Trips"))||[];
+let currentTrip=null,watchId=null;
+const drivers=["Felipe","Claudia","Christian"];
 
-// ========= ELEMENTE =========
-const startBtn = document.getElementById("startBtn");
-const endBtn = document.getElementById("endBtn");
-const statusBox = document.getElementById("status");
-const statsBox = document.getElementById("stats");
-const driverSelect = document.getElementById("driver");
-const canvas = document.getElementById("chart");
-const ctx = canvas.getContext("2d");
+/* ===== ELEMENTE ===== */
+const statusBox=status;
+const tripList=document.getElementById("tripList");
+const statsBox=document.getElementById("stats");
+const canvas=document.getElementById("chart");
+const ctx=canvas.getContext("2d");
 
-// ========= DARK MODE =========
-darkBtn.onclick = () => document.documentElement.classList.toggle("dark");
+/* ===== MONATE ===== */
+const months=["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
+const monthSelect=document.getElementById("monthSelect");
+months.forEach((m,i)=>{
+  const o=document.createElement("option");
+  o.value=i;o.text=m;monthSelect.appendChild(o)
+});
+monthSelect.value=new Date().getMonth();
 
-// ========= GPS / DISTANZ =========
-function distance(a, b) {
-  const R = 6371e3;
-  const φ1 = a.lat * Math.PI/180;
-  const φ2 = b.lat * Math.PI/180;
-  const Δφ = (b.lat-a.lat)*Math.PI/180;
-  const Δλ = (b.lon-a.lon)*Math.PI/180;
-  const x = Math.sin(Δφ/2)**2 +
-            Math.cos(φ1)*Math.cos(φ2)*
-            Math.sin(Δλ/2)**2;
-  return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1-x));
+/* ===== DARK ===== */
+darkBtn.onclick=()=>document.documentElement.classList.toggle("dark");
+
+/* ===== DISTANZ ===== */
+function dist(a,b){
+  const R=6371e3;
+  const dφ=(b.lat-a.lat)*Math.PI/180;
+  const dλ=(b.lon-a.lon)*Math.PI/180;
+  const x=Math.sin(dφ/2)**2+
+  Math.cos(a.lat*Math.PI/180)*
+  Math.cos(b.lat*Math.PI/180)*
+  Math.sin(dλ/2)**2;
+  return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x))
 }
 
-// ========= START =========
-startBtn.onclick = () => {
-  if (!navigator.geolocation) {
-    alert("GPS nicht verfügbar");
-    return;
-  }
-  currentTrip = {
-    driver: driverSelect.value,
-    start: Date.now(),
-    points: [],
-    distance: 0
-  };
-  watchId = navigator.geolocation.watchPosition(pos => {
-    const p = { lat: pos.coords.latitude, lon: pos.coords.longitude };
-    const pts = currentTrip.points;
-    if (pts.length) currentTrip.distance += distance(pts.at(-1), p);
-    pts.push(p);
-    statusBox.innerText = `Fahrt läuft… ${(currentTrip.distance/1000).toFixed(2)} km`;
-  });
-};
+/* ===== START ===== */
+startBtn.onclick=()=>{
+  if(!navigator.geolocation)return alert("GPS nicht verfügbar");
+  currentTrip={driver:driver.value,start:Date.now(),pts:[],dist:0};
+  watchId=navigator.geolocation.watchPosition(p=>{
+    const pos={lat:p.coords.latitude,lon:p.coords.longitude};
+    const pts=currentTrip.pts;
+    if(pts.length)currentTrip.dist+=dist(pts.at(-1),pos);
+    pts.push(pos);
+    statusBox.innerText=`Fahrt läuft… ${(currentTrip.dist/1000).toFixed(2)} km`
+  })
+}
 
-// ========= ENDE =========
-endBtn.onclick = () => {
-  if (!currentTrip) return;
+/* ===== ENDE ===== */
+endBtn.onclick=()=>{
+  if(!currentTrip)return;
   navigator.geolocation.clearWatch(watchId);
-  currentTrip.end = Date.now();
-  currentTrip.duration = Math.round((currentTrip.end-currentTrip.start)/60000);
-  currentTrip.km = (currentTrip.distance/1000).toFixed(2);
-  trips.push(currentTrip);
-  localStorage.setItem("c1Trips", JSON.stringify(trips));
-  currentTrip = null;
-  statusBox.innerText = "Fahrt beendet";
+  currentTrip.end=Date.now();
+  currentTrip.min=Math.round((currentTrip.end-currentTrip.start)/60000);
+  currentTrip.km=(currentTrip.dist/1000).toFixed(2);
+  trips.unshift(currentTrip);
+  localStorage.setItem("c1Trips",JSON.stringify(trips));
+  currentTrip=null;
+  statusBox.innerText="Fahrt beendet";
   render();
-};
-
-// ========= VIEW =========
-function setView(v){ view=v; render(); }
-
-// ========= AUSWERTUNG =========
-function render(){
-  const now=new Date();
-  const f=trips.filter(t=>{
-    const d=new Date(t.start);
-    return view==="year"?d.getFullYear()===now.getFullYear():
-    d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
-  });
-  const data={};
-  f.forEach(t=>{
-    if(!data[t.driver])data[t.driver]={min:0,km:0};
-    data[t.driver].min+=t.duration;
-    data[t.driver].km+=parseFloat(t.km);
-  });
-  statsBox.innerHTML=Object.entries(data).map(([d,v])=>
-    `<strong>${d}</strong>: ${v.min} Min · ${v.km.toFixed(1)} km`
-  ).join("<br>")||"Keine Fahrten";
-  drawChart(data);
 }
 
-// ========= CHART =========
+/* ===== RENDER ===== */
+function render(){
+  const m=parseInt(monthSelect.value);
+  const year=new Date().getFullYear();
+  const filtered=trips.filter(t=>{
+    const d=new Date(t.start);
+    return d.getMonth()===m&&d.getFullYear()===year
+  });
+
+  const agg={};
+  drivers.forEach(d=>agg[d]={km:0});
+  filtered.forEach(t=>agg[t.driver].km+=parseFloat(t.km));
+
+  const total=Object.values(agg).reduce((a,b)=>a+b.km,0)||1;
+  statsBox.innerHTML=drivers.map(d=>{
+    const p=(agg[d].km/total*100).toFixed(1);
+    return `<strong>${d}</strong>: ${agg[d].km.toFixed(1)} km (${p}%)`
+  }).join("<br>");
+
+  drawChart(agg);
+  tripList.innerHTML=filtered.map(t=>{
+    const d=new Date(t.start);
+    return `<div class="trip">
+    ${d.toLocaleDateString()} – <strong>${t.driver}</strong><br>
+    ${t.km} km · ${t.min} Min
+    </div>`
+  }).join("")||"<span class='small'>Keine Fahrten</span>";
+}
+
+/* ===== CHART ===== */
 function drawChart(data){
   ctx.clearRect(0,0,canvas.width,canvas.height);
-  const keys=Object.keys(data); if(!keys.length)return;
-  const max=Math.max(...keys.map(k=>data[k].km));
-  keys.forEach((k,i)=>{
-    const h=(data[k].km/max)*(canvas.height-30);
+  const max=Math.max(...drivers.map(d=>data[d].km))||1;
+  drivers.forEach((d,i)=>{
+    const h=data[d].km/max*(canvas.height-30);
     ctx.fillStyle="#0a84ff";
     ctx.fillRect(i*120+20,canvas.height-h-10,60,h);
-    ctx.fillText(k,i*120+20,canvas.height-2);
-  });
+    ctx.fillStyle="#888";
+    ctx.fillText(d,i*120+20,canvas.height-2)
+  })
 }
+
+monthSelect.onchange=render;
 render();
 </script>
 </body>
