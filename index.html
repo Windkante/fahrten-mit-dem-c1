@@ -134,6 +134,9 @@ function dist(a,b){
 
 // ================= GPS =================
 startBtn.onclick=()=>{
+
+  statusBox.innerText = "🟢 Fahrt gestartet – GPS wird gesucht…";
+  
   if(!navigator.geolocation)return alert("GPS nicht verfügbar");
   currentTrip={driver:driver.value,start:Date.now(),pts:[],dist:0};
   watchId=navigator.geolocation.watchPosition(p=>{
@@ -236,4 +239,5 @@ if ("serviceWorker" in navigator) {
   
 </body>
 </html>
+
 
