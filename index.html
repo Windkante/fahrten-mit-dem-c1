@@ -1,94 +1,79 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Fahrten mit dem C1</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fahrtenbuch C1</title>
 
 <style>
 :root {
-  --bg: #ffffff;
-  --text: #000000;
-  --card: #f2f2f2;
+  --bg: #f6f7f9;
+  --card: #ffffff;
+  --text: #111;
+  --muted: #666;
   --accent: #0a84ff;
-  --muted: #777;
+  --radius: 18px;
 }
-
 html.dark {
   --bg: #121212;
-  --text: #ffffff;
   --card: #1e1e1e;
+  --text: #fff;
   --muted: #aaa;
 }
-
 body {
   margin: 0;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   background: var(--bg);
   color: var(--text);
 }
-
-header {
-  padding: 16px;
-  background: var(--card);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.hero {
+  position: relative;
+  height: 220px;
+  background: url("c1-header.jpg") center/cover no-repeat;
 }
-
+.hero h1 {
+  position: absolute;
+  left: 20px;
+  bottom: 20px;
+  margin: 0;
+  color: white;
+  font-size: 28px;
+  text-shadow: 0 4px 20px rgba(0,0,0,.6);
+}
 main {
   padding: 16px;
+  max-width: 520px;
+  margin: auto;
 }
-
 .card {
   background: var(--card);
+  border-radius: var(--radius);
   padding: 16px;
-  border-radius: 14px;
   margin-bottom: 16px;
+  box-shadow: 0 12px 30px rgba(0,0,0,.08);
 }
-
 button {
   width: 100%;
   padding: 14px;
-  font-size: 16px;
-  border-radius: 12px;
+  border-radius: 14px;
   border: none;
+  font-size: 16px;
   background: var(--accent);
   color: white;
   margin-top: 8px;
 }
-
-button.secondary {
-  background: #666;
-}
-
-select {
-  width: 100%;
-  padding: 10px;
-  font-size: 16px;
-}
-
-.toggle {
-  display: flex;
-  gap: 8px;
-}
-
-canvas {
-  width: 100%;
-  height: 220px;
-}
+button.secondary { background: #777; }
+select { width: 100%; padding: 10px; font-size: 16px; }
+.toggle { display: flex; gap: 10px; }
+.toggle button { flex: 1; }
+canvas { width: 100%; height: 220px; }
 </style>
 </head>
 
 <body>
-
-<header>
-  <strong>🚗 Fahrten mit dem C1</strong>
-  <button id="darkBtn" class="secondary">🌙</button>
-</header>
+<div class="hero"><h1>Fahrtenbuch C1</h1></div>
 
 <main>
-
 <div class="card">
   <label>Fahrer</label>
   <select id="driver">
@@ -103,9 +88,7 @@ canvas {
   <button id="endBtn" class="secondary">■ Fahrt beenden</button>
 </div>
 
-<div class="card" id="status">
-  Keine aktive Fahrt
-</div>
+<div class="card" id="status">Keine aktive Fahrt</div>
 
 <div class="card toggle">
   <button class="secondary" onclick="setView('month')">Monat</button>
@@ -117,25 +100,19 @@ canvas {
   <div id="stats"></div>
 </div>
 
-<div class="card">
-  <canvas id="chart"></canvas>
-</div>
-
+<div class="card"><canvas id="chart"></canvas></div>
+<div class="card"><button class="secondary" id="darkBtn">🌙 Dark Mode</button></div>
 </main>
 
 <script>
-// ===== Dark Mode =====
-darkBtn.onclick = () => {
-  document.documentElement.classList.toggle("dark");
-};
-
-// ===== State =====
+// ========= STATE =========
 let trips = JSON.parse(localStorage.getItem("c1Trips")) || [];
 let currentTrip = null;
+let watchId = null;
 let view = "month";
 
-// ===== Elemente =====
-const startBtn = startBtnEl = document.getElementById("startBtn");
+// ========= ELEMENTE =========
+const startBtn = document.getElementById("startBtn");
 const endBtn = document.getElementById("endBtn");
 const statusBox = document.getElementById("status");
 const statsBox = document.getElementById("stats");
@@ -143,24 +120,50 @@ const driverSelect = document.getElementById("driver");
 const canvas = document.getElementById("chart");
 const ctx = canvas.getContext("2d");
 
-// ===== Start =====
+// ========= DARK MODE =========
+darkBtn.onclick = () => document.documentElement.classList.toggle("dark");
+
+// ========= GPS / DISTANZ =========
+function distance(a, b) {
+  const R = 6371e3;
+  const φ1 = a.lat * Math.PI/180;
+  const φ2 = b.lat * Math.PI/180;
+  const Δφ = (b.lat-a.lat)*Math.PI/180;
+  const Δλ = (b.lon-a.lon)*Math.PI/180;
+  const x = Math.sin(Δφ/2)**2 +
+            Math.cos(φ1)*Math.cos(φ2)*
+            Math.sin(Δλ/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1-x));
+}
+
+// ========= START =========
 startBtn.onclick = () => {
-  if (currentTrip) return;
+  if (!navigator.geolocation) {
+    alert("GPS nicht verfügbar");
+    return;
+  }
   currentTrip = {
     driver: driverSelect.value,
-    start: Date.now()
+    start: Date.now(),
+    points: [],
+    distance: 0
   };
-  statusBox.innerText = "Fahrt läuft…";
+  watchId = navigator.geolocation.watchPosition(pos => {
+    const p = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+    const pts = currentTrip.points;
+    if (pts.length) currentTrip.distance += distance(pts.at(-1), p);
+    pts.push(p);
+    statusBox.innerText = `Fahrt läuft… ${(currentTrip.distance/1000).toFixed(2)} km`;
+  });
 };
 
-// ===== Ende =====
+// ========= ENDE =========
 endBtn.onclick = () => {
   if (!currentTrip) return;
-
+  navigator.geolocation.clearWatch(watchId);
   currentTrip.end = Date.now();
-  currentTrip.duration =
-    Math.round((currentTrip.end - currentTrip.start) / 60000);
-
+  currentTrip.duration = Math.round((currentTrip.end-currentTrip.start)/60000);
+  currentTrip.km = (currentTrip.distance/1000).toFixed(2);
   trips.push(currentTrip);
   localStorage.setItem("c1Trips", JSON.stringify(trips));
   currentTrip = null;
@@ -168,64 +171,42 @@ endBtn.onclick = () => {
   render();
 };
 
-// ===== View =====
-function setView(v) {
-  view = v;
-  render();
-}
+// ========= VIEW =========
+function setView(v){ view=v; render(); }
 
-// ===== Auswertung =====
-function render() {
-  const now = new Date();
-  const filtered = trips.filter(t => {
-    const d = new Date(t.start);
-    return view === "year"
-      ? d.getFullYear() === now.getFullYear()
-      : d.getMonth() === now.getMonth() &&
-        d.getFullYear() === now.getFullYear();
+// ========= AUSWERTUNG =========
+function render(){
+  const now=new Date();
+  const f=trips.filter(t=>{
+    const d=new Date(t.start);
+    return view==="year"?d.getFullYear()===now.getFullYear():
+    d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
   });
-
-  const data = {};
-  filtered.forEach(t => {
-    if (!data[t.driver]) data[t.driver] = { count: 0, min: 0 };
-    data[t.driver].count++;
-    data[t.driver].min += t.duration;
+  const data={};
+  f.forEach(t=>{
+    if(!data[t.driver])data[t.driver]={min:0,km:0};
+    data[t.driver].min+=t.duration;
+    data[t.driver].km+=parseFloat(t.km);
   });
-
-  let html = "";
-  Object.keys(data).forEach(d => {
-    html += `<strong>${d}</strong>: ${data[d].count} Fahrten · ${data[d].min} Min<br>`;
-  });
-  statsBox.innerHTML = html || "Keine Fahrten";
-
+  statsBox.innerHTML=Object.entries(data).map(([d,v])=>
+    `<strong>${d}</strong>: ${v.min} Min · ${v.km.toFixed(1)} km`
+  ).join("<br>")||"Keine Fahrten";
   drawChart(data);
 }
 
-// ===== Diagramm =====
-function drawChart(data) {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  const drivers = Object.keys(data);
-  if (!drivers.length) return;
-
-  const max = Math.max(...drivers.map(d => data[d].min));
-  const barWidth = canvas.width / drivers.length;
-
-  drivers.forEach((d, i) => {
-    const h = (data[d].min / max) * (canvas.height - 20);
-    ctx.fillStyle = "#0a84ff";
-    ctx.fillRect(
-      i * barWidth + 10,
-      canvas.height - h,
-      barWidth - 20,
-      h
-    );
-    ctx.fillStyle = "#888";
-    ctx.fillText(d, i * barWidth + 15, canvas.height - 5);
+// ========= CHART =========
+function drawChart(data){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const keys=Object.keys(data); if(!keys.length)return;
+  const max=Math.max(...keys.map(k=>data[k].km));
+  keys.forEach((k,i)=>{
+    const h=(data[k].km/max)*(canvas.height-30);
+    ctx.fillStyle="#0a84ff";
+    ctx.fillRect(i*120+20,canvas.height-h-10,60,h);
+    ctx.fillText(k,i*120+20,canvas.height-2);
   });
 }
-
 render();
 </script>
-
 </body>
 </html>
