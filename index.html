@@ -5,37 +5,68 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Fahrtenbuch C1</title>
 
-<link
-  rel="stylesheet"
-  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-/>
+<link rel="stylesheet"
+ href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 
 <style>
 :root{
-  --bg:#f6f7f9;--card:#fff;--text:#111;--muted:#666;
-  --accent:#0a84ff;--radius:18px
+  --bg:#f6f7f9;
+  --card:#fff;
+  --text:#111;
+  --muted:#666;
+  --accent:#0a84ff;
+  --radius:18px;
 }
-html.dark{--bg:#121212;--card:#1e1e1e;--text:#fff;--muted:#aaa}
-body{margin:0;font-family:system-ui;background:var(--bg);color:var(--text)}
-.hero{height:220px;background:url("c1-header.jpg") center/cover}
-.hero h1{margin:0;padding:20px;color:#fff;font-size:28px;
-text-shadow:0 4px 20px rgba(0,0,0,.6)}
-main{max-width:560px;margin:auto;padding:16px}
-.card{background:var(--card);border-radius:var(--radius);
-padding:16px;margin-bottom:16px;
-box-shadow:0 12px 30px rgba(0,0,0,.08)}
-button{width:100%;padding:14px;border-radius:14px;
-border:none;font-size:16px;background:var(--accent);
-color:#fff;margin-top:8px}
+html.dark{
+  --bg:#121212;
+  --card:#1e1e1e;
+  --text:#fff;
+  --muted:#aaa;
+}
+body{
+  margin:0;
+  font-family:system-ui;
+  background:var(--bg);
+  color:var(--text);
+}
+.hero{
+  height:220px;
+  background:url("c1-header.jpg") center/cover no-repeat;
+}
+.hero h1{
+  margin:0;
+  padding:20px;
+  color:white;
+  font-size:28px;
+  text-shadow:0 4px 20px rgba(0,0,0,.6);
+}
+main{
+  max-width:560px;
+  margin:auto;
+  padding:16px;
+}
+.card{
+  background:var(--card);
+  border-radius:var(--radius);
+  padding:16px;
+  margin-bottom:16px;
+  box-shadow:0 12px 30px rgba(0,0,0,.08);
+}
+button{
+  width:100%;
+  padding:14px;
+  border-radius:14px;
+  border:none;
+  font-size:16px;
+  background:var(--accent);
+  color:white;
+  margin-top:8px;
+}
 button.secondary{background:#777}
 select{width:100%;padding:10px;font-size:16px}
-canvas{width:100%;height:220px}
 #map{height:260px;border-radius:14px}
 .trip{border-bottom:1px solid #ddd;padding:8px 0}
-.trip small{color:var(--muted)}
-.trip button{margin-top:6px;background:#c62828}
-.toggle{display:flex;gap:10px}
-.toggle button{flex:1}
+canvas{width:100%;height:220px}
 </style>
 </head>
 
@@ -59,11 +90,6 @@ canvas{width:100%;height:220px}
 </div>
 
 <div class="card" id="status">Keine aktive Fahrt</div>
-
-<div class="card toggle">
-<button class="secondary" onclick="setView('month')">Monat</button>
-<button class="secondary" onclick="setView('year')">Jahr</button>
-</div>
 
 <div class="card">
 <label>Monat</label>
@@ -98,70 +124,45 @@ canvas{width:100%;height:220px}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-// ================= STATE =================
 let trips=JSON.parse(localStorage.getItem("c1Trips"))||[];
 let currentTrip=null,watchId=null;
-let view="month";
 
-// ================= ELEMENTE =================
-const statusBox=status;
-const statsBox=document.getElementById("stats");
-const tripList=document.getElementById("tripList");
-const canvas=document.getElementById("chart");
-const ctx=canvas.getContext("2d");
-
-// ================= MONATE =================
 const months=["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
-monthSelect.innerHTML=months.map((m,i)=>`<option value="${i}">${m}</option>`).join("");
+months.forEach((m,i)=>{
+  monthSelect.innerHTML+=`<option value="${i}">${m}</option>`;
+});
 monthSelect.value=new Date().getMonth();
 
-// ================= DARK =================
 darkBtn.onclick=()=>document.documentElement.classList.toggle("dark");
 
-// ================= DISTANZ =================
 function dist(a,b){
   const R=6371e3;
   const dφ=(b.lat-a.lat)*Math.PI/180;
   const dλ=(b.lon-a.lon)*Math.PI/180;
   const x=Math.sin(dφ/2)**2+
-  Math.cos(a.lat*Math.PI/180)*
-  Math.cos(b.lat*Math.PI/180)*
+  Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*
   Math.sin(dλ/2)**2;
-  return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x))
+  return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
 }
 
-// ================= GPS =================
 startBtn.onclick=()=>{
-
-  if (currentTrip) return;
-  
-  if(!navigator.geolocation)return alert("GPS nicht verfügbar");
-  currentTrip={driver:driver.value,start:Date.now(),pts:[],dist:0};
-  watchId = navigator.geolocation.watchPosition(
-  p => {
-    const pos = { lat: p.coords.latitude, lon: p.coords.longitude };
-    if (currentTrip.pts.length)
-      currentTrip.dist += dist(currentTrip.pts.at(-1), pos);
-    currentTrip.pts.push(pos);
-    statusBox.innerText =
-      `Fahrt läuft… ${(currentTrip.dist / 1000).toFixed(2)} km`;
-  },
-  err => {
-    alert("GPS-Fehler: " + err.message);
-  },
-  {
-    enableHighAccuracy: true,
-    maximumAge: 0,
-    timeout: 10000
+  if(!navigator.geolocation){
+    alert("GPS nicht verfügbar");
+    return;
   }
-);
-
-    const pos={lat:p.coords.latitude,lon:p.coords.longitude};
+  currentTrip={
+    driver:driver.value,
+    start:Date.now(),
+    pts:[],
+    dist:0
+  };
+  watchId=navigator.geolocation.watchPosition(pos=>{
+    const p={lat:pos.coords.latitude,lon:pos.coords.longitude};
     if(currentTrip.pts.length)
-      currentTrip.dist+=dist(currentTrip.pts.at(-1),pos);
-    currentTrip.pts.push(pos);
-    statusBox.innerText=`Fahrt läuft… ${(currentTrip.dist/1000).toFixed(2)} km`
-  })
+      currentTrip.dist+=dist(currentTrip.pts.at(-1),p);
+    currentTrip.pts.push(p);
+    status.innerText=`Fahrt läuft… ${(currentTrip.dist/1000).toFixed(2)} km`;
+  });
 };
 
 endBtn.onclick=()=>{
@@ -173,80 +174,55 @@ endBtn.onclick=()=>{
   trips.unshift(currentTrip);
   localStorage.setItem("c1Trips",JSON.stringify(trips));
   currentTrip=null;
-  statusBox.innerText="Fahrt beendet";
+  status.innerText="Fahrt beendet";
   render();
 };
 
-// ================= VIEW =================
-function setView(v){view=v;render();}
+const ctx=chart.getContext("2d");
+let map=L.map("map").setView([48,11],6);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+let route;
 
-// ================= RENDER =================
 function render(){
   const y=new Date().getFullYear();
   const m=parseInt(monthSelect.value);
   const f=trips.filter(t=>{
     const d=new Date(t.start);
-    return view==="year"?d.getFullYear()===y:
-    d.getMonth()===m&&d.getFullYear()===y
+    return d.getMonth()===m&&d.getFullYear()===y;
   });
 
   const agg={Felipe:0,Claudia:0,Christian:0};
   f.forEach(t=>agg[t.driver]+=parseFloat(t.km));
   const total=Object.values(agg).reduce((a,b)=>a+b,0)||1;
 
-  statsBox.innerHTML=Object.entries(agg).map(([d,v])=>{
-    return `<strong>${d}</strong>: ${v.toFixed(1)} km (${(v/total*100).toFixed(1)}%)`
-  }).join("<br>");
+  stats.innerHTML=Object.entries(agg).map(([d,v])=>
+    `<strong>${d}</strong>: ${v.toFixed(1)} km (${(v/total*100).toFixed(1)}%)`
+  ).join("<br>");
 
-  drawChart(agg);
-  drawMap(f);
-  tripList.innerHTML=f.map((t,i)=>`
-    <div class="trip">
-    ${new Date(t.start).toLocaleDateString()} – <strong>${t.driver}</strong><br>
-    ${t.km} km · ${t.min} Min<br>
-    <button onclick="delTrip(${i})">🗑 Fahrt löschen</button>
-    </div>
-  `).join("")||"Keine Fahrten";
-}
-
-// ================= DELETE =================
-function delTrip(i){
-  if(!confirm("Fahrt wirklich löschen?"))return;
-  trips.splice(i,1);
-  localStorage.setItem("c1Trips",JSON.stringify(trips));
-  render();
-}
-
-// ================= CHART =================
-function drawChart(data){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  const keys=Object.keys(data);
-  const max=Math.max(...Object.values(data))||1;
-  keys.forEach((k,i)=>{
-    const h=data[k]/max*(canvas.height-30);
+  ctx.clearRect(0,0,chart.width,chart.height);
+  const max=Math.max(...Object.values(agg))||1;
+  Object.keys(agg).forEach((k,i)=>{
+    const h=agg[k]/max*(chart.height-30);
     ctx.fillStyle="#0a84ff";
-    ctx.fillRect(i*120+20,canvas.height-h-10,60,h);
-    ctx.fillText(k,i*120+20,canvas.height-2);
-  })
+    ctx.fillRect(i*120+20,chart.height-h-10,60,h);
+    ctx.fillText(k,i*120+20,chart.height-2);
+  });
+
+  if(route){map.removeLayer(route);}
+  const pts=f.flatMap(t=>t.pts||[]);
+  if(pts.length){
+    route=L.polyline(pts.map(p=>[p.lat,p.lon]),{color:"#0a84ff"}).addTo(map);
+    map.fitBounds(route.getBounds());
+  }
+
+  tripList.innerHTML=f.map(t=>
+    `<div class="trip">${new Date(t.start).toLocaleDateString()} –
+     <strong>${t.driver}</strong><br>${t.km} km · ${t.min} Min</div>`
+  ).join("")||"Keine Fahrten";
 }
 
-// ================= MAP =================
-let map=L.map("map").setView([48,11],6);
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
-let route;
-
-function drawMap(list){
-  if(route){map.removeLayer(route)}
-  const pts=list.flatMap(t=>t.pts||[]);
-  if(!pts.length)return;
-  const latlngs=pts.map(p=>[p.lat,p.lon]);
-  route=L.polyline(latlngs,{color:"#0a84ff"}).addTo(map);
-  map.fitBounds(route.getBounds());
-}
-
+monthSelect.onchange=render;
 render();
 </script>
 </body>
 </html>
-
-
