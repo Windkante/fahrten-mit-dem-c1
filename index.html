@@ -132,6 +132,9 @@ function dist(a,b){
 
 // ================= GPS =================
 startBtn.onclick=()=>{
+
+  if (currentTrip) return;
+  
   if(!navigator.geolocation)return alert("GPS nicht verfügbar");
   currentTrip={driver:driver.value,start:Date.now(),pts:[],dist:0};
   watchId = navigator.geolocation.watchPosition(
@@ -245,4 +248,5 @@ render();
 </script>
 </body>
 </html>
+
 
